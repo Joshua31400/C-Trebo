@@ -1,5 +1,4 @@
-﻿namespace DefaultNamespace;
-
+﻿namespace treboapi.Models;
 public class Label
 {
     public int Id { get; set; }
