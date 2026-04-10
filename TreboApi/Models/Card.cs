@@ -5,6 +5,7 @@ public class Card
     public int Id { get; set; }
     public string Title { get; set; }
     public string Description { get; set; }
+    public bool IsArchived { get; set; } = false;
     public DateTime CreatedAt { get; set; }
     public List<User> Members { get; set; }
     public List<Comment> Comments { get; set; }

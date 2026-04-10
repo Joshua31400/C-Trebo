@@ -6,7 +6,6 @@ public class Board
     public string Title { get; set; }
     public string Description { get; set; }
     public List<Column> Columns { get; set; }
-    public List<Column> ArchivedColumns { get; set; } 
     public List<User> Members { get; set; }
     public List<Label> UniqueLabels { get; set; }
     public int CreatorId { get; set; }
