@@ -6,8 +6,8 @@ public class Card
     public string Title { get; set; }
     public string Description { get; set; }
     public DateTime CreatedAt { get; set; }
-    public list<member> Members { get; set; }
-    public list<Comment> Comments { get; set; }
+    public List<User> Members { get; set; }
+    public List<Comment> Comments { get; set; }
     public int ColumnId { get; set; }
     public Column Column { get; set; }
 }
