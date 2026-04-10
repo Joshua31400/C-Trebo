@@ -1,0 +1,6 @@
+@TreboApi_HostAddress = http://localhost:5214
+
+GET {{TreboApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
