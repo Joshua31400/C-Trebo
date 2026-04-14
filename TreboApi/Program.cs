@@ -43,5 +43,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapAuthRoutes();
+app.MapBoardRoutes();
+app.MapColumnRoutes();
+app.MapCardRoutes();
 
 app.Run();

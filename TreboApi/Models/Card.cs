@@ -6,6 +6,7 @@ public class Card
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public bool IsArchived { get; set; } = false;
+    public int? Position { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public List<User> Members { get; set; } = [];
     public List<Comment> Comments { get; set; } = [];
