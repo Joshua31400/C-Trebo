@@ -46,5 +46,6 @@ app.MapAuthRoutes();
 app.MapBoardRoutes();
 app.MapColumnRoutes();
 app.MapCardRoutes();
+app.MapCommentRoutes();
 
 app.Run();
