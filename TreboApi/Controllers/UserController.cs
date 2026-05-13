@@ -82,6 +82,17 @@ public static class UserController
         });
 
 
+        app.MapGet("/users/lookup", async (AppDbContext db, HttpContext http, string username) =>
+        {
+            var user = await db.Users
+                .Where(u => u.Username == username)
+                .Select(u => new { u.Id, u.Username })
+                .FirstOrDefaultAsync();
+
+            if (user == null) return Results.NotFound();
+            return Results.Ok(user);
+        }).RequireAuthorization();
+
         app.MapPost("/auth/logout", async (AppDbContext db, HttpContext http) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);

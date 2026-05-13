@@ -1,6 +1,8 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using treboapi;
+using treboapi.Hubs;
 using treboapi.Models;
 
 namespace treboapi.Controllers;
@@ -40,8 +42,8 @@ public static class CommentController
 
             return Results.Ok(comments);
         }).RequireAuthorization();
-        
-        app.MapPost("/boards/{boardId}/columns/{columnId}/cards/{cardId}/comments", async (AppDbContext db, HttpContext http, int boardId, int columnId, int cardId, CreateCommentRequest req) =>
+
+        app.MapPost("/boards/{boardId}/columns/{columnId}/cards/{cardId}/comments", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, int cardId, CreateCommentRequest req) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -66,18 +68,20 @@ public static class CommentController
 
             db.Comments.Add(comment);
             await db.SaveChangesAsync();
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
+
+            var creator = await db.Users.FindAsync(userId);
             return Results.Created($"/boards/{boardId}/columns/{columnId}/cards/{cardId}/comments/{comment.Id}", new
             {
                 comment.Id,
                 comment.Content,
                 comment.CreatedAt,
                 comment.CardId,
-                Creator = new { comment.CreatorId }
+                Creator = new { comment.CreatorId, Username = creator?.Username ?? string.Empty }
             });
         }).RequireAuthorization();
 
-
-        app.MapPut("/boards/{boardId}/columns/{columnId}/cards/{cardId}/comments/{commentId}", async (AppDbContext db, HttpContext http, int boardId, int columnId, int cardId, int commentId, UpdateCommentRequest req) =>
+        app.MapPut("/boards/{boardId}/columns/{columnId}/cards/{cardId}/comments/{commentId}", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, int cardId, int commentId, UpdateCommentRequest req) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -98,18 +102,11 @@ public static class CommentController
             comment.Content = req.Content ?? comment.Content;
 
             await db.SaveChangesAsync();
-            return Results.Ok(new
-            {
-                comment.Id,
-                comment.Content,
-                comment.CreatedAt,
-                comment.CardId,
-                Creator = new { comment.CreatorId }
-            });
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
+            return Results.Ok(new { comment.Id, comment.Content, comment.CreatedAt, comment.CardId });
         }).RequireAuthorization();
 
-
-        app.MapDelete("/boards/{boardId}/columns/{columnId}/cards/{cardId}/comments/{commentId}", async (AppDbContext db, HttpContext http, int boardId, int columnId, int cardId, int commentId) =>
+        app.MapDelete("/boards/{boardId}/columns/{columnId}/cards/{cardId}/comments/{commentId}", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, int cardId, int commentId) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -128,6 +125,7 @@ public static class CommentController
 
             db.Comments.Remove(comment);
             await db.SaveChangesAsync();
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
             return Results.Ok();
         }).RequireAuthorization();
     }

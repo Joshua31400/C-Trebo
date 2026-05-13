@@ -1,6 +1,8 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using treboapi;
+using treboapi.Hubs;
 using treboapi.Models;
 
 namespace treboapi.Controllers;
@@ -9,7 +11,7 @@ public static class ColumnController
 {
     public static void MapColumnRoutes(this WebApplication app)
     {
-        app.MapPost("/boards/{boardId}/columns", async (AppDbContext db, HttpContext http, int boardId, CreateColumnRequest req) =>
+        app.MapPost("/boards/{boardId}/columns", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, CreateColumnRequest req) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -35,10 +37,11 @@ public static class ColumnController
 
             db.Columns.Add(column);
             await db.SaveChangesAsync();
-            return Results.Created($"/boards/{boardId}/columns/{column.Id}", column);
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
+            return Results.Created($"/boards/{boardId}/columns/{column.Id}", new { column.Id, column.Title, column.Position, column.BoardId, column.IsArchived });
         }).RequireAuthorization();
-        
-        app.MapPut("/boards/{boardId}/columns/{columnId}", async (AppDbContext db, HttpContext http, int boardId, int columnId, UpdateColumnRequest req) =>
+
+        app.MapPut("/boards/{boardId}/columns/{columnId}", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, UpdateColumnRequest req) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -57,10 +60,11 @@ public static class ColumnController
             column.Title = req.Title ?? column.Title;
 
             await db.SaveChangesAsync();
-            return Results.Ok(column);
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
+            return Results.Ok(new { column.Id, column.Title, column.Position, column.BoardId, column.IsArchived });
         }).RequireAuthorization();
-        
-        app.MapPatch("/boards/{boardId}/columns/{columnId}/archive", async (AppDbContext db, HttpContext http, int boardId, int columnId) =>
+
+        app.MapPatch("/boards/{boardId}/columns/{columnId}/archive", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -79,10 +83,11 @@ public static class ColumnController
             column.IsArchived = !column.IsArchived;
 
             await db.SaveChangesAsync();
-            return Results.Ok(column);
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
+            return Results.Ok(new { column.Id, column.Title, column.Position, column.BoardId, column.IsArchived });
         }).RequireAuthorization();
-        
-        app.MapPatch("/boards/{boardId}/columns/reorder", async (AppDbContext db, HttpContext http, int boardId, ReorderRequest req) =>
+
+        app.MapPatch("/boards/{boardId}/columns/reorder", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, ReorderRequest req) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -102,10 +107,11 @@ public static class ColumnController
             }
 
             await db.SaveChangesAsync();
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
             return Results.Ok();
         }).RequireAuthorization();
 
-        app.MapDelete("/boards/{boardId}/columns/{columnId}", async (AppDbContext db, HttpContext http, int boardId, int columnId) =>
+        app.MapDelete("/boards/{boardId}/columns/{columnId}", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -123,6 +129,7 @@ public static class ColumnController
 
             db.Columns.Remove(column);
             await db.SaveChangesAsync();
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
             return Results.Ok();
         }).RequireAuthorization();
     }

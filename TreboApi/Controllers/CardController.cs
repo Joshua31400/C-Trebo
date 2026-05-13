@@ -1,6 +1,8 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using treboapi;
+using treboapi.Hubs;
 using treboapi.Models;
 
 namespace treboapi.Controllers;
@@ -9,7 +11,7 @@ public static class CardController
 {
     public static void MapCardRoutes(this WebApplication app)
     {
-        app.MapPost("/boards/{boardId}/columns/{columnId}/cards", async (AppDbContext db, HttpContext http, int boardId, int columnId, CreateCardRequest req) =>
+        app.MapPost("/boards/{boardId}/columns/{columnId}/cards", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, CreateCardRequest req) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -39,9 +41,10 @@ public static class CardController
 
             db.Cards.Add(card);
             await db.SaveChangesAsync();
-            return Results.Created($"/boards/{boardId}/columns/{columnId}/cards/{card.Id}", card);
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
+            return Results.Created($"/boards/{boardId}/columns/{columnId}/cards/{card.Id}",
+                new { card.Id, card.Title, card.Description, card.Position, card.ColumnId, card.IsArchived, card.CreatedAt });
         }).RequireAuthorization();
-
 
         app.MapGet("/boards/{boardId}/columns/{columnId}/cards/{cardId}", async (AppDbContext db, HttpContext http, int boardId, int columnId, int cardId) =>
         {
@@ -68,8 +71,7 @@ public static class CardController
             return Results.Ok(card);
         }).RequireAuthorization();
 
-
-        app.MapPut("/boards/{boardId}/columns/{columnId}/cards/{cardId}", async (AppDbContext db, HttpContext http, int boardId, int columnId, int cardId, UpdateCardRequest req) =>
+        app.MapPut("/boards/{boardId}/columns/{columnId}/cards/{cardId}", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, int cardId, UpdateCardRequest req) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -89,11 +91,11 @@ public static class CardController
             card.Description = req.Description ?? card.Description;
 
             await db.SaveChangesAsync();
-            return Results.Ok(card);
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
+            return Results.Ok(new { card.Id, card.Title, card.Description, card.Position, card.ColumnId, card.IsArchived, card.CreatedAt });
         }).RequireAuthorization();
 
-
-        app.MapPatch("/boards/{boardId}/columns/{columnId}/cards/{cardId}/archive", async (AppDbContext db, HttpContext http, int boardId, int columnId, int cardId) =>
+        app.MapPatch("/boards/{boardId}/columns/{columnId}/cards/{cardId}/archive", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, int cardId) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -112,11 +114,11 @@ public static class CardController
             card.IsArchived = !card.IsArchived;
 
             await db.SaveChangesAsync();
-            return Results.Ok(card);
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
+            return Results.Ok(new { card.Id, card.IsArchived });
         }).RequireAuthorization();
 
-
-        app.MapPatch("/boards/{boardId}/columns/{columnId}/cards/{cardId}/move", async (AppDbContext db, HttpContext http, int boardId, int columnId, int cardId, MoveCardRequest req) =>
+        app.MapPatch("/boards/{boardId}/columns/{columnId}/cards/{cardId}/move", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, int cardId, MoveCardRequest req) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -143,11 +145,11 @@ public static class CardController
             card.Position = lastPosition + 1;
 
             await db.SaveChangesAsync();
-            return Results.Ok(card);
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
+            return Results.Ok(new { card.Id, card.ColumnId, card.Position });
         }).RequireAuthorization();
 
-
-        app.MapPatch("/boards/{boardId}/columns/{columnId}/cards/reorder", async (AppDbContext db, HttpContext http, int boardId, int columnId, ReorderRequest req) =>
+        app.MapPatch("/boards/{boardId}/columns/{columnId}/cards/reorder", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, ReorderRequest req) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -167,11 +169,11 @@ public static class CardController
             }
 
             await db.SaveChangesAsync();
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
             return Results.Ok();
         }).RequireAuthorization();
 
-
-        app.MapPost("/boards/{boardId}/columns/{columnId}/cards/{cardId}/members/{memberId}", async (AppDbContext db, HttpContext http, int boardId, int columnId, int cardId, int memberId) =>
+        app.MapPost("/boards/{boardId}/columns/{columnId}/cards/{cardId}/members/{memberId}", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, int cardId, int memberId) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -198,11 +200,11 @@ public static class CardController
 
             card.Members.Add(userToAdd);
             await db.SaveChangesAsync();
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
             return Results.Ok();
         }).RequireAuthorization();
 
-
-        app.MapDelete("/boards/{boardId}/columns/{columnId}/cards/{cardId}/members/{memberId}", async (AppDbContext db, HttpContext http, int boardId, int columnId, int cardId, int memberId) =>
+        app.MapDelete("/boards/{boardId}/columns/{columnId}/cards/{cardId}/members/{memberId}", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, int cardId, int memberId) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -226,11 +228,11 @@ public static class CardController
 
             card.Members.Remove(userToRemove);
             await db.SaveChangesAsync();
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
             return Results.Ok();
         }).RequireAuthorization();
 
-
-        app.MapDelete("/boards/{boardId}/columns/{columnId}/cards/{cardId}", async (AppDbContext db, HttpContext http, int boardId, int columnId, int cardId) =>
+        app.MapDelete("/boards/{boardId}/columns/{columnId}/cards/{cardId}", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, int cardId) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -248,6 +250,7 @@ public static class CardController
 
             db.Cards.Remove(card);
             await db.SaveChangesAsync();
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
             return Results.Ok();
         }).RequireAuthorization();
     }

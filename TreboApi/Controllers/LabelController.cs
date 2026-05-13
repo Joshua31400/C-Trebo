@@ -1,6 +1,8 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using treboapi;
+using treboapi.Hubs;
 using treboapi.Models;
 
 namespace treboapi.Controllers;
@@ -30,8 +32,7 @@ public static class LabelController
             return Results.Ok(labels);
         }).RequireAuthorization();
 
-
-        app.MapPost("/boards/{boardId}/labels", async (AppDbContext db, HttpContext http, int boardId, CreateLabelRequest req) =>
+        app.MapPost("/boards/{boardId}/labels", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, CreateLabelRequest req) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -54,11 +55,11 @@ public static class LabelController
 
             db.Labels.Add(label);
             await db.SaveChangesAsync();
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
             return Results.Created($"/boards/{boardId}/labels/{label.Id}", new { label.Id, label.Title, label.Color, label.IsDefault });
         }).RequireAuthorization();
 
-
-        app.MapPost("/boards/{boardId}/columns/{columnId}/cards/{cardId}/labels/{labelId}", async (AppDbContext db, HttpContext http, int boardId, int columnId, int cardId, int labelId) =>
+        app.MapPost("/boards/{boardId}/columns/{columnId}/cards/{cardId}/labels/{labelId}", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, int cardId, int labelId) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -85,11 +86,11 @@ public static class LabelController
 
             card.Labels.Add(label);
             await db.SaveChangesAsync();
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
             return Results.Ok();
         }).RequireAuthorization();
 
-
-        app.MapDelete("/boards/{boardId}/columns/{columnId}/cards/{cardId}/labels/{labelId}", async (AppDbContext db, HttpContext http, int boardId, int columnId, int cardId, int labelId) =>
+        app.MapDelete("/boards/{boardId}/columns/{columnId}/cards/{cardId}/labels/{labelId}", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int columnId, int cardId, int labelId) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -113,28 +114,26 @@ public static class LabelController
 
             card.Labels.Remove(label);
             await db.SaveChangesAsync();
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
             return Results.Ok();
         }).RequireAuthorization();
 
-
-        app.MapDelete("/boards/{boardId}/labels/{labelId}", async (AppDbContext db, HttpContext http, int boardId, int labelId) =>
+        app.MapDelete("/boards/{boardId}/labels/{labelId}", async (AppDbContext db, HttpContext http, IHubContext<BoardHub> hub, int boardId, int labelId) =>
         {
             var userId = int.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
             var board = await db.Boards
-                .Include(b => b.Members)
                 .FirstOrDefaultAsync(b => b.Id == boardId);
 
             if (board == null) return Results.NotFound();
-
-            var isMember = board.CreatorId == userId || board.Members.Any(m => m.Id == userId);
-            if (!isMember) return Results.Forbid();
+            if (board.CreatorId != userId) return Results.Forbid();
 
             var label = await db.Labels.FirstOrDefaultAsync(l => l.Id == labelId && l.BoardId == boardId && !l.IsDefault);
             if (label == null) return Results.NotFound();
 
             db.Labels.Remove(label);
             await db.SaveChangesAsync();
+            await hub.Clients.Group($"board-{boardId}").SendAsync("BoardRefresh");
             return Results.Ok();
         }).RequireAuthorization();
     }
