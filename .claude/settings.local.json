@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\phenr\\\\Desktop\\\\C#\\\\C-Trebo\" -Force | Where-Object {$_.Name -ne 'bin' -and $_.Name -ne 'obj' -and $_.Name -ne '.idea'})",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\phenr\\\\Desktop\\\\C#\\\\C-Trebo\\\\TreboApi\" -Force | Where-Object {$_.Name -ne 'bin' -and $_.Name -ne 'obj'})",
+      "PowerShell([System.IO.Directory]::Exists\\(\"C:\\\\Users\\\\phenr\\\\Desktop\\\\C#\\\\C-Trebo\\\\TreboWeb\"\\) | Out-String; \\(Get-ChildItem -Path \"C:\\\\Users\\\\phenr\\\\Desktop\\\\C#\\\\C-Trebo\\\\TreboWeb\" -Force -ErrorAction SilentlyContinue | Measure-Object\\).Count)",
+      "Bash(npm install *)",
+      "Bash(node server.js)",
+      "Bash(Start-Sleep -Seconds 2)",
+      "Bash(curl -s http://localhost:8080/ -L -o NUL -w \"%{http_code}\")",
+      "Bash(curl -s http://localhost:8080/login -w \"\\\\n%{http_code}\" -o /dev/null)",
+      "Bash(curl -s http://localhost:8080/boards -w \"\\\\n%{http_code}\" -o /dev/null)",
+      "Bash(curl -s http://localhost:8080/board -w \"\\\\n%{http_code}\" -o /dev/null)",
+      "Bash(curl -s http://localhost:8080/js/api/client.js -w \"\\\\n%{http_code}\" -o /dev/null)",
+      "Bash(curl -s http://localhost:8080/css/styles.css -w \"\\\\n%{http_code}\" -o /dev/null)",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet build *)"
+    ]
+  }
+}

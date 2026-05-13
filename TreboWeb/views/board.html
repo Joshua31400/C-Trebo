@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trebo — Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        body { background: var(--board-bg); }
+
+        #board-area {
+            height: calc(100vh - 52px);
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 16px;
+        }
+
+        #columns-container {
+            display: flex;
+            gap: 12px;
+            height: 100%;
+            align-items: flex-start;
+            min-width: max-content;
+        }
+
+        .column {
+            flex-shrink: 0;
+            width: var(--column-width);
+            background: var(--column-bg);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            max-height: 100%;
+        }
+
+        .cards-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 8px;
+            min-height: 8px;
+        }
+    </style>
+</head>
+<body class="overflow-hidden">
+
+    <header id="board-header" class="h-[52px] flex items-center gap-3 px-4" style="background: rgba(0,0,0,0.3);">
+        <a href="/boards" class="text-white/60 hover:text-white transition-colors flex-shrink-0" title="Back to boards">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+        </a>
+
+        <div class="w-px h-5 bg-white/20 flex-shrink-0"></div>
+
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span id="board-title-display" class="text-white font-bold text-sm cursor-pointer hover:bg-white/10 px-1.5 py-0.5 rounded transition-colors" title="Click to rename"></span>
+        </div>
+
+        <div class="flex items-center gap-2 ml-auto">
+            <div id="board-members-display" class="flex items-center gap-1"></div>
+
+            <button id="archive-btn"
+                class="flex items-center gap-1.5 text-white/70 hover:text-white text-xs px-2.5 py-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                Archived
+            </button>
+
+            <button id="members-btn"
+                class="flex items-center gap-1.5 text-white/70 hover:text-white text-xs px-2.5 py-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Members
+            </button>
+        </div>
+    </header>
+
+    <div id="board-area">
+        <div id="columns-container">
+            <div id="add-column-section" class="flex-shrink-0" style="width: var(--column-width);">
+                <button id="show-add-column"
+                    class="w-full flex items-center gap-2 text-white/70 hover:text-white bg-white/10 hover:bg-white/15 rounded-xl px-3 py-2.5 text-sm transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add a list
+                </button>
+                <div id="add-column-form" class="hidden bg-[#1e2d3d] rounded-xl p-3">
+                    <input type="text" id="new-column-title"
+                        class="w-full bg-slate-700 border border-slate-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500 placeholder-slate-500 mb-2"
+                        placeholder="List title...">
+                    <div class="flex gap-2">
+                        <button id="confirm-add-column"
+                            class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-sm py-1.5 rounded-lg transition-colors font-medium">
+                            Add
+                        </button>
+                        <button id="cancel-add-column"
+                            class="text-slate-400 hover:text-white text-sm px-2 py-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="card-modal" class="hidden fixed inset-0 bg-black/70 z-50 overflow-y-auto">
+        <div class="min-h-full flex items-start justify-center p-4 pt-12 pb-12">
+            <div id="card-modal-content" class="w-full max-w-2xl rounded-xl shadow-2xl" style="background: #1e2a3a;">
+            </div>
+        </div>
+    </div>
+
+    <div id="members-panel" class="hidden fixed inset-0 bg-black/60 z-40 flex items-start justify-end">
+        <div class="bg-slate-800 w-72 h-full shadow-2xl border-l border-slate-700 flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b border-slate-700">
+                <h3 class="text-white font-semibold">Board Members</h3>
+                <button id="close-members-panel" class="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="members-list" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+            <div class="p-4 border-t border-slate-700">
+                <p class="text-slate-400 text-xs mb-2">Add member by username</p>
+                <div class="flex gap-2">
+                    <input type="text" id="add-member-username" placeholder="Username"
+                        class="flex-1 bg-slate-700 border border-slate-600 text-white text-sm px-3 py-2 rounded-lg focus:outline-none focus:border-indigo-500 placeholder-slate-500">
+                    <button id="confirm-add-member"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-3 py-2 rounded-lg transition-colors font-medium">
+                        Add
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="archive-panel" class="hidden fixed inset-0 bg-black/60 z-40 flex items-start justify-end">
+        <div class="bg-slate-800 w-80 h-full shadow-2xl border-l border-slate-700 flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b border-slate-700">
+                <h3 class="text-white font-semibold">Archived Items</h3>
+                <button id="close-archive-panel" class="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="archive-content" class="flex-1 overflow-y-auto p-4"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script type="module" src="/js/pages/board.js"></script>
+</body>
+</html>
