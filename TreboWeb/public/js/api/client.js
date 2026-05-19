@@ -1,4 +1,4 @@
-export const API_BASE = 'http://192.168.1.227:5214';
+export const API_BASE = 'http://localhost:5214';
 
 export function getUser() {
     const raw = localStorage.getItem('user');
